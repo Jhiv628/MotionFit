@@ -54,7 +54,10 @@ class BicepCurlAnalyzer:
             elbow_swing = elbow_swing / upper_arm_length
 
         if self.starting_shoulder_position is not None:
-            shoulder_swing = calculate_distance(shoulder, self.starting_shoulder_position)
+            shoulder_swing = calculate_distance(
+                shoulder,
+                self.starting_shoulder_position
+            )
             shoulder_swing = shoulder_swing / upper_arm_length
 
         self.max_elbow_swing = max(self.max_elbow_swing, elbow_swing)
@@ -107,6 +110,24 @@ class BicepCurlAnalyzer:
             landmarks,
             mp_pose.PoseLandmark.RIGHT_HIP
         )
+
+    def reset_tracking_state(self):
+        self.stage = "tracking lost"
+
+        self.starting_elbow_position = None
+        self.starting_shoulder_position = None
+
+        self.rep_started = False
+        self.reached_top = False
+        self.fully_extended = False
+
+        self.max_elbow_swing = 0
+        self.max_shoulder_swing = 0
+        self.min_elbow_angle = 180
+        self.max_elbow_angle = 0
+
+        self.current_rep_quality = "Waiting for clear tracking"
+        self.last_rep_feedback = []
 
     def reset_rep_tracking(self, shoulder, elbow):
         self.starting_elbow_position = elbow
