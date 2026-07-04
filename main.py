@@ -4,15 +4,66 @@ from utils.pose_detector import PoseDetector
 from exercises.bicep_curl import BicepCurlAnalyzer
 
 
+WINDOW_NAME = "MotionFit - Upper Body Tracker"
+FULLSCREEN_MODE = True
+
+
 def get_score_color(score):
+    """
+    Returns a colour based on the form score.
+    OpenCV uses BGR colour order, not RGB.
+    """
+
     if score >= 80:
         return (0, 255, 0)      # Green
     elif score >= 50:
         return (0, 255, 255)    # Yellow
+
     return (0, 0, 255)          # Red
 
 
+def get_screen_size():
+    """
+    Gets the user's monitor size using tkinter.
+    If tkinter fails for any reason, it safely falls back to 1280x720.
+    """
+
+    try:
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.withdraw()
+
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        root.destroy()
+
+        return screen_width, screen_height
+
+    except Exception:
+        return 1280, 720
+
+
+def resize_frame_to_screen(frame, screen_width, screen_height):
+    """
+    Resizes the camera frame so it fills the screen.
+    This fixes the issue where the video appears small with grey space around it.
+    """
+
+    return cv2.resize(
+        frame,
+        (screen_width, screen_height),
+        interpolation=cv2.INTER_LINEAR
+    )
+
+
 def draw_transparent_panel(frame, x, y, width, height, alpha=0.65):
+    """
+    Draws a dark transparent panel behind the dashboard.
+    This makes the text readable even when the camera background is bright.
+    """
+
     overlay = frame.copy()
 
     cv2.rectangle(
@@ -27,6 +78,13 @@ def draw_transparent_panel(frame, x, y, width, height, alpha=0.65):
 
 
 def draw_label_value(frame, label, value, x, y, value_color=(255, 255, 255)):
+    """
+    Draws one dashboard row.
+    Example:
+    Good reps      3
+    Bad reps       1
+    """
+
     cv2.putText(
         frame,
         label,
@@ -51,6 +109,11 @@ def draw_label_value(frame, label, value, x, y, value_color=(255, 255, 255)):
 
 
 def draw_dashboard(frame, analysis):
+    """
+    Draws the full MotionFit dashboard on the camera feed.
+    It displays reps, stage, elbow angle, form score, rep quality, and feedback.
+    """
+
     panel_x = 15
     panel_y = 15
     panel_w = 320
@@ -107,7 +170,7 @@ def draw_dashboard(frame, analysis):
     draw_label_value(frame, "Elbow angle", f"{int(analysis['elbow_angle'])}°", x, y)
     y += 35
 
-    # Form score
+    # Form score section
     score = analysis["form_score"]
     score_color = get_score_color(score)
 
@@ -184,7 +247,7 @@ def draw_dashboard(frame, analysis):
 
     y += 35
 
-    # Live feedback
+    # Live feedback title
     cv2.putText(
         frame,
         "Live feedback",
@@ -198,6 +261,7 @@ def draw_dashboard(frame, analysis):
 
     y += 25
 
+    # Only show the first 3 feedback messages so the UI stays clean
     feedback = analysis["feedback"][:3]
 
     for message in feedback:
@@ -216,12 +280,16 @@ def draw_dashboard(frame, analysis):
 
 
 def draw_no_body_detected(frame):
-    draw_transparent_panel(frame, 15, 15, 260, 70)
+    """
+    Shows a clean message when MediaPipe cannot detect a person.
+    """
+
+    draw_transparent_panel(frame, 15, 15, 280, 75)
 
     cv2.putText(
         frame,
         "No body detected",
-        (35, 58),
+        (35, 60),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.7,
         (255, 255, 255),
@@ -231,11 +299,33 @@ def draw_no_body_detected(frame):
 
 
 def main():
+    """
+    Main application loop.
+    This opens the camera, detects the body pose, analyzes the bicep curl,
+    draws the skeleton/dashboard, and shows everything in a full-screen window.
+    """
+
     cap = cv2.VideoCapture(0)
+
+    # Ask the webcam for a higher resolution.
+    # The camera may not always give exactly 1280x720, but this improves quality if supported.
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     if not cap.isOpened():
         print("Could not open webcam.")
         return
+
+    screen_width, screen_height = get_screen_size()
+
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+
+    if FULLSCREEN_MODE:
+        cv2.setWindowProperty(
+            WINDOW_NAME,
+            cv2.WND_PROP_FULLSCREEN,
+            cv2.WINDOW_FULLSCREEN
+        )
 
     pose_detector = PoseDetector()
     bicep_curl = BicepCurlAnalyzer()
@@ -247,36 +337,53 @@ def main():
             print("Could not read webcam frame.")
             break
 
+        # Mirror the camera so it feels natural, like looking in a mirror.
         frame = cv2.flip(frame, 1)
 
+        # MediaPipe needs RGB, but OpenCV uses BGR.
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Detect pose landmarks.
         results = pose_detector.detect_pose(rgb_frame)
 
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
 
+            # Analyze the bicep curl using the detected landmarks.
             analysis = bicep_curl.analyze(landmarks, pose_detector)
 
+            # Draw full body skeleton.
             pose_detector.draw_full_body_joints(frame, results)
 
+            # Label shoulders, elbows, and wrists.
             pose_detector.draw_upper_body_labels(frame, landmarks)
 
+            # Highlight the active curling arm.
             pose_detector.draw_active_arm_highlight(
                 frame,
                 landmarks,
                 bicep_curl.selected_arm
             )
 
+            # Draw the app dashboard.
             draw_dashboard(frame, analysis)
 
         else:
             draw_no_body_detected(frame)
 
-        cv2.imshow("MotionFit - Upper Body Tracker", frame)
+        # Resize the final frame so it fills your monitor.
+        display_frame = resize_frame_to_screen(
+            frame,
+            screen_width,
+            screen_height
+        )
+
+        cv2.imshow(WINDOW_NAME, display_frame)
 
         key = cv2.waitKey(10) & 0xFF
 
-        if key == ord("q"):
+        # Q or Escape closes the app.
+        if key == ord("q") or key == 27:
             break
 
     cap.release()
