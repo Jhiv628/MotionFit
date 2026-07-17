@@ -5,34 +5,21 @@ from utils.tracking_quality import get_bicep_tracking_quality
 from exercises.bicep_curl import BicepCurlAnalyzer
 
 
-def get_score_color(score):
-<<<<<<< Updated upstream
-=======
-    """
-    Returns a colour based on the user's form score.
-    OpenCV uses BGR colour order, not RGB.
-    """
+WINDOW_NAME = "MotionFit - Upper Body Tracker"
+FULLSCREEN_MODE = True
 
->>>>>>> Stashed changes
+
+def get_score_color(score):
     if score >= 80:
         return (0, 255, 0)      # Green
 
     if score >= 50:
         return (0, 255, 255)    # Yellow
+
     return (0, 0, 255)          # Red
 
 
-<<<<<<< Updated upstream
-def draw_transparent_panel(frame, x, y, width, height, alpha=0.65):
-=======
 def get_screen_size():
-    """
-    Gets the user's monitor size.
-
-    This is used so the camera feed can be resized to fill the screen.
-    If the screen size cannot be detected, it falls back to 1280x720.
-    """
-
     try:
         import tkinter as tk
 
@@ -51,13 +38,6 @@ def get_screen_size():
 
 
 def resize_frame_to_screen(frame, screen_width, screen_height):
-    """
-    Resizes the camera frame to fit the monitor.
-
-    This fixes the grey empty space issue where the OpenCV window is larger
-    than the actual camera image.
-    """
-
     return cv2.resize(
         frame,
         (screen_width, screen_height),
@@ -66,13 +46,6 @@ def resize_frame_to_screen(frame, screen_width, screen_height):
 
 
 def draw_transparent_panel(frame, x, y, width, height, alpha=0.65):
-    """
-    Draws a dark transparent panel.
-
-    This makes dashboard text easier to read on top of the camera feed.
-    """
-
->>>>>>> Stashed changes
     overlay = frame.copy()
 
     cv2.rectangle(
@@ -87,17 +60,6 @@ def draw_transparent_panel(frame, x, y, width, height, alpha=0.65):
 
 
 def draw_label_value(frame, label, value, x, y, value_color=(255, 255, 255)):
-<<<<<<< Updated upstream
-=======
-    """
-    Draws one dashboard row.
-
-    Example:
-    Good reps      3
-    Bad reps       1
-    """
-
->>>>>>> Stashed changes
     cv2.putText(
         frame,
         label,
@@ -122,25 +84,6 @@ def draw_label_value(frame, label, value, x, y, value_color=(255, 255, 255)):
 
 
 def draw_dashboard(frame, analysis):
-<<<<<<< Updated upstream
-=======
-    """
-    Draws the main MotionFit dashboard.
-
-    It shows:
-    - exercise name
-    - active arm
-    - good reps
-    - bad reps
-    - total reps
-    - stage
-    - elbow angle
-    - form score
-    - rep quality
-    - live feedback
-    """
-
->>>>>>> Stashed changes
     panel_x = 15
     panel_y = 15
     panel_w = 320
@@ -195,10 +138,6 @@ def draw_dashboard(frame, analysis):
     draw_label_value(frame, "Elbow angle", f"{int(analysis['elbow_angle'])}°", x, y)
     y += 35
 
-<<<<<<< Updated upstream
-    # Form score
-=======
->>>>>>> Stashed changes
     score = analysis["form_score"]
     score_color = get_score_color(score)
 
@@ -272,10 +211,6 @@ def draw_dashboard(frame, analysis):
 
     y += 35
 
-<<<<<<< Updated upstream
-    # Live feedback
-=======
->>>>>>> Stashed changes
     cv2.putText(
         frame,
         "Live feedback",
@@ -307,13 +242,6 @@ def draw_dashboard(frame, analysis):
 
 
 def draw_tracking_warning(frame, tracking):
-    """
-    Draws a warning panel when the app cannot safely analyse the exercise.
-
-    This prevents the app from giving bad form scores when the shoulder,
-    elbow, wrist, or hip are not clearly visible.
-    """
-
     panel_x = 15
     panel_y = 15
     panel_w = 460
@@ -366,20 +294,12 @@ def draw_tracking_warning(frame, tracking):
 
 
 def draw_no_body_detected(frame):
-<<<<<<< Updated upstream
-    draw_transparent_panel(frame, 15, 15, 260, 70)
-=======
-    """
-    Draws a message when MediaPipe cannot detect a body at all.
-    """
-
     draw_transparent_panel(frame, 15, 15, 280, 75)
->>>>>>> Stashed changes
 
     cv2.putText(
         frame,
         "No body detected",
-        (35, 58),
+        (35, 60),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.7,
         (255, 255, 255),
@@ -389,31 +309,25 @@ def draw_no_body_detected(frame):
 
 
 def main():
-<<<<<<< Updated upstream
-    cap = cv2.VideoCapture(0)
-
-=======
-    """
-    Main application loop.
-
-    This function:
-    - opens the webcam
-    - detects body landmarks
-    - checks tracking quality
-    - analyses bicep curl form if tracking is good
-    - pauses scoring if tracking is poor
-    - draws the dashboard and skeleton
-    """
-
     cap = cv2.VideoCapture(0)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
->>>>>>> Stashed changes
     if not cap.isOpened():
         print("Could not open webcam.")
         return
+
+    screen_width, screen_height = get_screen_size()
+
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+
+    if FULLSCREEN_MODE:
+        cv2.setWindowProperty(
+            WINDOW_NAME,
+            cv2.WND_PROP_FULLSCREEN,
+            cv2.WINDOW_FULLSCREEN
+        )
 
     pose_detector = PoseDetector()
     bicep_curl = BicepCurlAnalyzer()
@@ -428,38 +342,28 @@ def main():
         frame = cv2.flip(frame, 1)
 
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
         results = pose_detector.detect_pose(rgb_frame)
 
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
 
-<<<<<<< Updated upstream
-            analysis = bicep_curl.analyze(landmarks, pose_detector)
-
-            pose_detector.draw_full_body_joints(frame, results)
-
-            pose_detector.draw_upper_body_labels(frame, landmarks)
-
-            pose_detector.draw_active_arm_highlight(
-                frame,
-=======
             tracking = get_bicep_tracking_quality(
->>>>>>> Stashed changes
                 landmarks,
                 pose_detector,
                 bicep_curl.selected_arm
             )
 
-<<<<<<< Updated upstream
-            draw_dashboard(frame, analysis)
-=======
             pose_detector.draw_full_body_joints(frame, results)
 
-            pose_detector.draw_upper_body_labels(frame, landmarks)
+            # This simplified version only labels the selected/visible arm.
+            # If your pose_detector.py does not support this yet,
+            # temporarily change this back to:
+            # pose_detector.draw_upper_body_labels(frame, landmarks)
+            pose_detector.draw_upper_body_labels(
+                frame,
+                landmarks,
+                tracking["selected_arm"]
+            )
 
             if tracking["tracking_ready"]:
                 bicep_curl.selected_arm = tracking["selected_arm"]
@@ -480,19 +384,11 @@ def main():
             else:
                 bicep_curl.reset_tracking_state()
                 draw_tracking_warning(frame, tracking)
->>>>>>> Stashed changes
 
         else:
             bicep_curl.reset_tracking_state()
             draw_no_body_detected(frame)
 
-<<<<<<< Updated upstream
-        cv2.imshow("MotionFit - Upper Body Tracker", frame)
-
-        key = cv2.waitKey(10) & 0xFF
-
-        if key == ord("q"):
-=======
         display_frame = resize_frame_to_screen(
             frame,
             screen_width,
@@ -504,7 +400,6 @@ def main():
         key = cv2.waitKey(10) & 0xFF
 
         if key == ord("q") or key == 27:
->>>>>>> Stashed changes
             break
 
     cap.release()

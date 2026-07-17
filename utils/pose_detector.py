@@ -96,42 +96,59 @@ class PoseDetector:
             cv2.FONT_HERSHEY_SIMPLEX,
             0.45,
             color,
-            2
+            2,
+            cv2.LINE_AA
         )
 
-    def draw_upper_body_labels(self, frame, landmarks):
-        joints_to_label = [
-            {
-                "landmark": self.mp_pose.PoseLandmark.LEFT_SHOULDER,
-                "label": "L Shoulder",
-                "color": (255, 255, 255)
-            },
-            {
-                "landmark": self.mp_pose.PoseLandmark.LEFT_ELBOW,
-                "label": "L Elbow",
-                "color": (0, 255, 0)
-            },
-            {
-                "landmark": self.mp_pose.PoseLandmark.LEFT_WRIST,
-                "label": "L Wrist",
-                "color": (255, 255, 255)
-            },
-            {
-                "landmark": self.mp_pose.PoseLandmark.RIGHT_SHOULDER,
-                "label": "R Shoulder",
-                "color": (255, 255, 255)
-            },
-            {
-                "landmark": self.mp_pose.PoseLandmark.RIGHT_ELBOW,
-                "label": "R Elbow",
-                "color": (0, 255, 0)
-            },
-            {
-                "landmark": self.mp_pose.PoseLandmark.RIGHT_WRIST,
-                "label": "R Wrist",
-                "color": (255, 255, 255)
-            }
-        ]
+    def draw_upper_body_labels(self, frame, landmarks, arm_side=None):
+        """
+        Labels upper-body joints.
+
+        arm_side options:
+        - None = label both arms
+        - "left" = label left shoulder, left elbow, left wrist only
+        - "right" = label right shoulder, right elbow, right wrist only
+        """
+
+        joints_to_label = []
+
+        if arm_side is None or arm_side == "left":
+            joints_to_label.extend([
+                {
+                    "landmark": self.mp_pose.PoseLandmark.LEFT_SHOULDER,
+                    "label": "L Shoulder",
+                    "color": (255, 255, 255)
+                },
+                {
+                    "landmark": self.mp_pose.PoseLandmark.LEFT_ELBOW,
+                    "label": "L Elbow",
+                    "color": (0, 255, 0)
+                },
+                {
+                    "landmark": self.mp_pose.PoseLandmark.LEFT_WRIST,
+                    "label": "L Wrist",
+                    "color": (255, 255, 255)
+                }
+            ])
+
+        if arm_side is None or arm_side == "right":
+            joints_to_label.extend([
+                {
+                    "landmark": self.mp_pose.PoseLandmark.RIGHT_SHOULDER,
+                    "label": "R Shoulder",
+                    "color": (255, 255, 255)
+                },
+                {
+                    "landmark": self.mp_pose.PoseLandmark.RIGHT_ELBOW,
+                    "label": "R Elbow",
+                    "color": (0, 255, 0)
+                },
+                {
+                    "landmark": self.mp_pose.PoseLandmark.RIGHT_WRIST,
+                    "label": "R Wrist",
+                    "color": (255, 255, 255)
+                }
+            ])
 
         for joint in joints_to_label:
             visibility = self.get_visibility(landmarks, joint["landmark"])
